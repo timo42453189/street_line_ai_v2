@@ -6,7 +6,7 @@ from skimage import measure
 from camera.camera import Cam
 import serial
 import time
-
+import cv2
 
 ser = serial.Serial("COM9", 115200)
 time.sleep(3)
