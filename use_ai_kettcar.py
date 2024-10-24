@@ -1,20 +1,24 @@
 from TensorflowModelTest import TensorflowModelTest
 from ImageDisplayer import ImageDisplayer
-from data_storing.DataReader import DataReader
 from ImageManipulator import ImageManipulator
 import numpy as np
 from skimage import measure
 from camera.camera import Cam
+import serial
+import time
 
-c = Cam(index=[0])
-d = DataReader()
+
+ser = serial.Serial("COM9", 115200)
+time.sleep(3)
+
+c = Cam(index=[1])
 m = ImageManipulator()
 model = TensorflowModelTest('contrast_model/v0_contrast.h5')
 threshold = 0.9
-Kp = 0.01
+Kp = 0.03
 
 def calculate_angle(x):
-    return -9*x+10
+    return -9*x+7
 
 while True:
     image = c.resize_image(c.get_frame())
@@ -63,7 +67,10 @@ while True:
 
         print(f"(Lenkwinkel: {steering_direction:.2f})")
         print(f"Neuer Lenkwinkel: {calculate_angle(steering_direction)}")
+        ser.write(str(int(calculate_angle(steering_direction))).encode())
+        #time.sleep(1)
         
     else:
         print("Keine weißen Bereiche im Bild gefunden.")
         steering_direction = 0
+        ser.write(str(int(calculate_angle(0))).encode())
