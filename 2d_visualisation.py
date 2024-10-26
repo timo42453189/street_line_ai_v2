@@ -20,7 +20,7 @@ Kp = 0.03
 def calculate_angle(x):
     return -9*x+7
 
-def draw_bezier_curve(image ,p0 ,p1 ,p2 ,curvature_factor=1.0 ,color=(0, 255, 0) , thickness=2):
+def draw_bezier_curve(image ,p0 ,p1 ,p2p ,curvature_factor=1.0 ,color=(0, 255, 0) , thickness=2):
     # Generiert von ChatGPT
     image = cv2.rectangle(image, (140, 70), (190, 80), color=(255, 0, 0), thickness=-1)
     p1 = np.array(p0) + curvature_factor * (np.array(p1) - np.array(p0))

@@ -8,10 +8,10 @@ import serial
 import time
 import cv2
 
-ser = serial.Serial("COM9", 115200)
+ser = serial.Serial("/dev/ttyACM0", 115200)
 time.sleep(3)
 
-c = Cam(index=[1])
+c = Cam(index=[0])
 m = ImageManipulator()
 model = TensorflowModelTest('contrast_model/v0_contrast.h5')
 threshold = 0.9
