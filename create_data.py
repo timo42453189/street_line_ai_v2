@@ -8,7 +8,6 @@ import os
 m = ImageManipulator()
 d = DataReader()
 
-# Schleife über alle Bilder im Verzeichnis
 for x in os.listdir("data_storing/train_images"):
     image, _ = d.read(x, 'train_images')
     image = image / 255.0
