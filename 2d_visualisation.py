@@ -70,7 +70,7 @@ def draw_bezier_curve(image ,p0 ,p1 ,p2 ,curvature_factor=1.0 ,color=(0, 255, 0)
     def bezier_curve(p0, p1, p2, t):
         return (1 - t)**2 * p0 + 2 * (1 - t) * t * p1 + t**2 * p2
     curve_points = []
-    for t in np.linspace(0, 1, 100):  # 100 Punkte auf der Kurve
+    for t in np.linspace(0, 1, 100):
         point = bezier_curve(np.array(p0), np.array(p1), np.array(p2), t)
         curve_points.append(point.astype(int))
 
