@@ -42,15 +42,14 @@ for x in os.listdir("data_storing/train_images"):
         elif key == ord('s'):
             d.store_automatic(average_brightness, contrast_value, 'train_images_contrast')
             break
-        elif key == ord('+') or key == ord('='):  # '+'-Taste zum Erhöhen des Kontrasts
+        elif key == ord('+') or key == ord('='):
             contrast_value += 0.1
             print(f"Kontrast erhöht auf {contrast_value:.1f}")
-        elif key == ord('-') or key == ord('_'):  # '-'-Taste zum Verringern des Kontrasts
-            contrast_value = max(0.1, contrast_value - 0.1)  # Verhindern, dass der Kontrast negativ wird
+        elif key == ord('-') or key == ord('_'):
+            contrast_value = max(0.1, contrast_value - 0.1)
             print(f"Kontrast verringert auf {contrast_value:.1f}")
         else:
             print("Drücken Sie '+/-' um den Kontrast anzupassen, 's' zum Speichern oder ESC zum Überspringen.")
             continue
 
-    # Fenster schließen bevor zum nächsten Bild gewechselt wird
     cv2.destroyAllWindows()

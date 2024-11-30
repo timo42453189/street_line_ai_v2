@@ -8,7 +8,7 @@ import serial
 import time
 import cv2
 
-ser = serial.Serial("/dev/ttyACM0", 115200)
+ser = serial.Serial("/dev/ttyACM0", 9600)
 time.sleep(3)
 
 c = Cam(index=[0])
@@ -18,7 +18,7 @@ threshold = 0.9
 Kp = 0.03
 
 def calculate_angle(x):
-    return -9*x+7
+    return 495*x-505
 
 while True:
     image = c.resize_image(c.get_frame())
