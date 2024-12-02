@@ -18,7 +18,7 @@ threshold = 0.9
 Kp = 0.03
 
 def calculate_angle(x):
-    return 495*x-505
+    return 495*x+510
 
 while True:
     image = c.resize_image(c.get_frame())
