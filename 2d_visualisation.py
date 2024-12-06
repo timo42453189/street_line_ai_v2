@@ -36,7 +36,7 @@ def calculate_angle(x):
     float
         The calculated steering angle.
     """
-    return -9*x+7
+    return 495*x+510
 
 def draw_bezier_curve(image ,p0 ,p1 ,p2 ,curvature_factor=1.0 ,color=(0, 255, 0) , thickness=2):
     """
