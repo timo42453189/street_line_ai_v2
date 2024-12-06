@@ -4,16 +4,19 @@ from ImageManipulator import ImageManipulator
 import numpy as np
 from skimage import measure
 from camera.camera import Cam
-import serial
+#import serial
 import time
 import cv2
+import os
 
 # Initialize the serial port
-ser = serial.Serial("COM9", 115200)
+#ser = serial.Serial("COM9", 115200)
 time.sleep(3)
 
+CONTRAST_FILE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'files', 'contrast_value.txt')
+
 # Load the Camera, Image Manipulator and Model
-c = Cam(index=[1])
+c = Cam(index=[0])
 m = ImageManipulator()
 model = TensorflowModelTest('contrast_model/v0_contrast.h5')
 
@@ -82,6 +85,8 @@ def draw_bezier_curve(image ,p0 ,p1 ,p2 ,curvature_factor=1.0 ,color=(0, 255, 0)
 while True:
     # Takes an image from the webcam and resize it
     image = c.resize_image(c.get_frame())
+    # Save image to folder for Server visualization
+    cv2.imwrite('webserver/static/images/ai_first_image.jpg', image)
     # Normalize the image for the AI
     image = image / 255
     # Make a copy of the original image for the visualisation
@@ -103,6 +108,9 @@ while True:
 
     # Predict the contrast of the image
     contrast_value = model.predict(np.array([average_brightness]))[0]
+    # Write contrast value to file for Server visualization
+    with open(CONTRAST_FILE_PATH, 'w') as file:
+        file.write(str(contrast_value[0]))
     # Enhance the contrast of the image corresponding to the predicted value
     image_contrast = m.enhance_contrast(original_image, contrast_value[0], 0)
     # Generate a mask making the white parts white and the rest black to get a heatmap of the street
@@ -139,7 +147,7 @@ while True:
         print(f"(Steering angle: {steering_direction:.2f})")
         print(f"Steering angle for Arduino: {calculate_angle(steering_direction)}")
         # Send the calculated steering angle to the Arduino
-        ser.write(str(int(calculate_angle(steering_direction))).encode())
+        #ser.write(str(int(calculate_angle(steering_direction))).encode())
         # Calculate the parameters for visualization and draw the bezier curve
         p0 = (140, 70)
         p1 = (140, 50)
@@ -159,4 +167,4 @@ while True:
     else:
         print("No white area found.")
         steering_direction = 0
-        ser.write(str(int(calculate_angle(0))).encode())
+        #ser.write(str(int(calculate_angle(0))).encode())

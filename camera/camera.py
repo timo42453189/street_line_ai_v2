@@ -4,7 +4,7 @@ class Cam:
     def __init__(self, index=[0]):
         self.cams = []
         for i in range(len(index)):
-            x = cv2.VideoCapture(index[i])#cv2.CAP_DSHOW
+            x = cv2.VideoCapture(index[i], cv2.CAP_DSHOW)#cv2.CAP_DSHOW
             if x.isOpened():
                 self.cams.append(x)
             else:

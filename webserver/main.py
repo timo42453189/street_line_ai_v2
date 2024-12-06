@@ -1,8 +1,8 @@
 from flask import Flask, jsonify, render_template, send_file
 import os
 
-IMAGE_PATH = os.path.join(os.getcwd(), 'static', 'images', 'ai_first_image.jpg')
-
+IMAGE_PATH = os.path.join(os.getcwd(),'webserver' ,'static', 'images', 'ai_first_image.jpg')
+CONTRAST_FILE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'files', 'contrast_value.txt')
 print(IMAGE_PATH)
 app = Flask(__name__)
 
@@ -50,6 +50,15 @@ def image_last_modified_first():
 def get_image():
     try:
         return send_file(IMAGE_PATH)
+    except FileNotFoundError:
+        return jsonify({"error": "File not found"}), 404
+    
+@app.route('/image/contrast_value')
+def get_contrast_value():
+    try:
+        with open(CONTRAST_FILE_PATH, 'r') as file:
+            contrast_value = float(file.read().strip())
+            return jsonify({"contrast_value": contrast_value})
     except FileNotFoundError:
         return jsonify({"error": "File not found"}), 404
 

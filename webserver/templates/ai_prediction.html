@@ -18,9 +18,12 @@
         </nav>
     </header>
     <main id="content">
-    <h1>AI Prediction</h1>
+    <h1>Get Image</h1>
     <img id="ai-image" src="/static/images/ai_first_image.jpg" alt="AI Prediction">
-</main>
+    <h1>↓</h1>
+    <h1>Predict contrast Value</h1>
+    <p id="contrast-value"></p>
+    </main>
 
 <script>
     const imageElement = document.getElementById('ai-image');
@@ -41,7 +44,20 @@
             console.error('Error checking for image update:', error);
         }
     }
-
+    async function checkContrastValue() {
+        try {
+            const response = await fetch('/image/contrast_value');
+            if (response.ok) {
+                const data = await response.json();
+                document.getElementById('contrast-value').textContent = data.contrast_value;
+            } else {
+                console.error('Failed to fetch contrast value');
+            }
+        } catch (error) {
+            console.error('Error checking contrast value:', error);
+        }
+    }
+    setInterval(checkContrastValue, 500);
     setInterval(checkForImageUpdate, 500);
 </script>
 
