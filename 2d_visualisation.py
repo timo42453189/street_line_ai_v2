@@ -14,9 +14,12 @@ import os
 time.sleep(3)
 
 CONTRAST_FILE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'files', 'contrast_value.txt')
+STEERING_ANGLE_FILE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'files', 'steering_angle.txt')
 AI_FIRST_IMAGE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'images', 'ai_first_image.jpg')
 AI_SECOND_IMAGE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'images', 'ai_second_image.jpg')
 AI_THIRD_IMAGE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'images', 'ai_third_image.jpg')
+AI_FOURTH_IMAGE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'images', 'ai_fourth_image.jpg')
+
 # Load the Camera, Image Manipulator and Model
 c = Cam(index=[0])
 m = ImageManipulator()
@@ -42,6 +45,14 @@ def calculate_angle(x):
         The calculated steering angle.
     """
     return 495*x+510
+
+def read_file(file_path):
+    with open(file_path, 'r') as file:
+        return float(file.read().strip())
+
+def write_file(file_path, value):
+    with open(file_path, 'w') as file:
+        file.write(str(value))
 
 def draw_bezier_curve(image ,p0 ,p1 ,p2 ,curvature_factor=1.0 ,color=(0, 255, 0) , thickness=2):
     """
@@ -114,8 +125,7 @@ while True:
     contrast_value = model.predict(np.array([average_brightness]))[0]
     # Write contrast value to file for Server visualization
     if send_image > TRESHOLD_IMAGE_SEND:
-        with open(CONTRAST_FILE_PATH, 'w') as file:
-            file.write(str(contrast_value[0]))
+        write_file(CONTRAST_FILE_PATH, contrast_value[0])
     # Enhance the contrast of the image corresponding to the predicted value
     image_contrast = m.enhance_contrast(original_image, contrast_value[0], 0)
     # Generate a mask making the white parts white and the rest black to get a heatmap of the street
@@ -169,6 +179,10 @@ while True:
         p1 = (190, 50)
         p2 = (190*(steering_direction+1), 20)
         image_contrast = draw_bezier_curve(image_contrast, p0, p1, p2)
+        # Save image_contrast to folder for Server visualization
+        if send_image > TRESHOLD_IMAGE_SEND:
+            cv2.imwrite(AI_FOURTH_IMAGE_PATH, image_contrast*255)
+            write_file(STEERING_ANGLE_FILE_PATH, steering_direction)
         # Display the image for visualisation
         cv2.imshow('road', image_contrast)
         if cv2.waitKey(1) & 0xFF == ord('q'):

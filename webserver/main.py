@@ -3,12 +3,22 @@ import os
 
 AI_FIRST_IMAGE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'images', 'ai_first_image.jpg')
 CONTRAST_FILE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'files', 'contrast_value.txt')
+STEERING_ANGLE_FILE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'files', 'steering_angle.txt')
 BATTERY_FILE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'files', 'battery_level.txt')
 VOLTAGE_FILE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'files', 'voltage.txt')
 AI_SECOND_IMAGE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'images', 'ai_second_image.jpg')
 AI_THIRD_IMAGE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'images', 'ai_third_image.jpg')
+AI_FOURTH_IMAGE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'images', 'ai_fourth_image.jpg')
 
 app = Flask(__name__)
+
+def read_file(file_path):
+    with open(file_path, 'r') as file:
+        return float(file.read().strip())
+
+def write_file(file_path, value):
+    with open(file_path, 'w') as file:
+        file.write(str(value))
 
 def get_battery_level():
     try:
@@ -86,12 +96,36 @@ def get_image_third():
     except FileNotFoundError:
         return jsonify({"error": "File not found"}), 404
 
+@app.route('/image/last_modified_fourth/')
+def image_last_modified_fourth():
+    try:
+        last_modified = os.path.getmtime(AI_FOURTH_IMAGE_PATH)
+        return jsonify({"last_modified": last_modified})
+    except FileNotFoundError:
+        return jsonify({"error": "File not found"}), 404
+    
+@app.route('/image_fourth')
+def get_image_fourth():
+    try:
+        return send_file(AI_FOURTH_IMAGE_PATH)
+    except FileNotFoundError:
+        return jsonify({"error": "File not found"}), 404
+
 @app.route('/values/contrast_value')
 def get_contrast_value():
     try:
-        with open(CONTRAST_FILE_PATH, 'r') as file:
-            contrast_value = float(file.read().strip())
-            return jsonify({"contrast_value": contrast_value})
+        contrast_value = read_file(CONTRAST_FILE_PATH)
+        return jsonify({"contrast_value": contrast_value})
+    except FileNotFoundError:
+        return jsonify({"error": "File not found"}), 404
+    except ValueError:
+        return jsonify({"error": "Invalid contrast value"}), 400
+    
+@app.route('/values/steering_angle')
+def get_steering_angle():
+    try:
+        steering_angle = read_file(STEERING_ANGLE_FILE_PATH)
+        return jsonify({"contrast_value": steering_angle})
     except FileNotFoundError:
         return jsonify({"error": "File not found"}), 404
     except ValueError:

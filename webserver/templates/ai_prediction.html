@@ -25,16 +25,22 @@
     <p id="contrast-value"></p>
     <h1>↓</h1>
     <h1>Apply Contrast</h1>
-    <img id="contrast-image" src="/static/images/ai_second_image.jpg" alt="AI Prediction">
+    <img id="contrast-image" src="/static/images/ai_second_image.jpg" alt="Contrast Image">
     <h1>↓</h1>
     <h1>Remove Noise</h1>
-    <img id="noise-image" src="/static/images/ai_third_image.jpg" alt="AI Prediction">
+    <img id="noise-image" src="/static/images/ai_third_image.jpg" alt="Cleaned Image">
+    <h1>↓</h1>
+    <h1>Usind the centroid, calculate the corresponding steering angle</h1>
+    <h2>Visualise the steering angle usind the bezier curve</h2>
+    <img id="bezier-image" src="/static/images/ai_fourth_image.jpg" alt="Bezier">
+    <p id="steering_angle"></p>
     </main>
 
     <script>
         let lastModifiedFirst = null;
         let lastModifiedSecond = null;
         let lastModifiedThird = null;
+        let lastModifiedFourth = null;
 
         async function fetchLastModified(endpoint) {
             try {
@@ -75,12 +81,27 @@
                 console.error('Error fetching contrast value:', error);
             }
         }
+        async function upadteSteeringAngle() {
+            try {
+                const response = await fetch('/values/steering_angle');
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('steering_angle').textContent = data.contrast_value;
+                } else {
+                    console.error('Failed to fetch contrast value');
+                }
+            } catch (error) {
+                console.error('Error fetching contrast value:', error);
+            }
+        }
 
         // Häufigkeit der Überprüfung auf Bildaktualisierungen und Kontrastwert anpassen
         setInterval(() => updateImageIfModified('ai-image', '/static/images/ai_first_image.jpg', 'lastModifiedFirst', '/image/last_modified_first'), 1000); // Alle 5 Sekunden
         setInterval(() => updateImageIfModified('contrast-image', '/static/images/ai_second_image.jpg', 'lastModifiedSecond', '/image/last_modified_second'), 1000);
         setInterval(() => updateImageIfModified('noise-image', '/static/images/ai_third_image.jpg', 'lastModifiedThird', '/image/last_modified_third'), 1000);
+        setInterval(() => updateImageIfModified('bezier-image', '/static/images/ai_fourth_image.jpg', 'lastModifiedFourth', '/image/last_modified_fourth'), 1000);
         setInterval(updateContrastValue, 1000); // Alle 5 Sekunden
+        setInterval(upadteSteeringAngle, 1000);
     </script>
 
     <footer>
