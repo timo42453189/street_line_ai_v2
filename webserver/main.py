@@ -1,14 +1,18 @@
 from flask import Flask, jsonify, render_template, send_file
 import os
 
-IMAGE_PATH = os.path.join(os.getcwd(),'webserver' ,'static', 'images', 'ai_first_image.jpg')
+AI_FIRST_IMAGE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'images', 'ai_first_image.jpg')
 CONTRAST_FILE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'files', 'contrast_value.txt')
-print(IMAGE_PATH)
+BATTERY_FILE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'files', 'battery_level.txt')
+VOLTAGE_FILE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'files', 'voltage.txt')
+AI_SECOND_IMAGE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'images', 'ai_second_image.jpg')
+AI_THIRD_IMAGE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'images', 'ai_third_image.jpg')
+
 app = Flask(__name__)
 
 def get_battery_level():
     try:
-        with open('battery_level.txt', 'r') as file:
+        with open(BATTERY_FILE_PATH, 'r') as file:
             return int(file.read().strip())
     except FileNotFoundError:
         return -1
@@ -17,7 +21,7 @@ def get_battery_level():
 
 def get_voltage():
     try:
-        with open('voltage.txt', 'r') as file:
+        with open(VOLTAGE_FILE_PATH, 'r') as file:
             return float(file.read().strip())
     except FileNotFoundError:
         return -1
@@ -38,22 +42,51 @@ def ai_prediction():
 
 @app.route('/image/last_modified_first/')
 def image_last_modified_first():
-    print(IMAGE_PATH)
-    print(os.path.exists(IMAGE_PATH))
     try:
-        last_modified = os.path.getmtime(IMAGE_PATH)
+        last_modified = os.path.getmtime(AI_FIRST_IMAGE_PATH)
         return jsonify({"last_modified": last_modified})
     except FileNotFoundError:
         return jsonify({"error": "File not found"}), 404
     
 @app.route('/image_first')
-def get_image():
+def get_image_first():
     try:
-        return send_file(IMAGE_PATH)
+        return send_file(AI_FIRST_IMAGE_PATH)
+    except FileNotFoundError:
+        return jsonify({"error": "File not found"}), 404
+
+
+@app.route('/image/last_modified_second/')
+def image_last_modified_second():
+    try:
+        last_modified = os.path.getmtime(AI_SECOND_IMAGE_PATH)
+        return jsonify({"last_modified": last_modified})
     except FileNotFoundError:
         return jsonify({"error": "File not found"}), 404
     
-@app.route('/image/contrast_value')
+@app.route('/image_second')
+def get_image_second():
+    try:
+        return send_file(AI_SECOND_IMAGE_PATH)
+    except FileNotFoundError:
+        return jsonify({"error": "File not found"}), 404
+
+@app.route('/image/last_modified_third/')
+def image_last_modified_third():
+    try:
+        last_modified = os.path.getmtime(AI_THIRD_IMAGE_PATH)
+        return jsonify({"last_modified": last_modified})
+    except FileNotFoundError:
+        return jsonify({"error": "File not found"}), 404
+    
+@app.route('/image_third')
+def get_image_third():
+    try:
+        return send_file(AI_THIRD_IMAGE_PATH)
+    except FileNotFoundError:
+        return jsonify({"error": "File not found"}), 404
+
+@app.route('/values/contrast_value')
 def get_contrast_value():
     try:
         with open(CONTRAST_FILE_PATH, 'r') as file:
@@ -61,6 +94,9 @@ def get_contrast_value():
             return jsonify({"contrast_value": contrast_value})
     except FileNotFoundError:
         return jsonify({"error": "File not found"}), 404
+    except ValueError:
+        return jsonify({"error": "Invalid contrast value"}), 400
+
 
 if __name__ == '__main__':
     app.run(debug=True)

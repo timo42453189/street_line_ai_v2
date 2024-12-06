@@ -14,7 +14,9 @@ import os
 time.sleep(3)
 
 CONTRAST_FILE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'files', 'contrast_value.txt')
-
+AI_FIRST_IMAGE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'images', 'ai_first_image.jpg')
+AI_SECOND_IMAGE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'images', 'ai_second_image.jpg')
+AI_THIRD_IMAGE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'images', 'ai_third_image.jpg')
 # Load the Camera, Image Manipulator and Model
 c = Cam(index=[0])
 m = ImageManipulator()
@@ -81,12 +83,14 @@ def draw_bezier_curve(image ,p0 ,p1 ,p2 ,curvature_factor=1.0 ,color=(0, 255, 0)
         cv2.line(image, tuple(curve_points[i]), tuple(curve_points[i + 1]), color, thickness)
     return image
 
-
+send_image = 0
+TRESHOLD_IMAGE_SEND = 20
 while True:
     # Takes an image from the webcam and resize it
     image = c.resize_image(c.get_frame())
     # Save image to folder for Server visualization
-    cv2.imwrite('webserver/static/images/ai_first_image.jpg', image)
+    if send_image > TRESHOLD_IMAGE_SEND:
+        cv2.imwrite(AI_FIRST_IMAGE_PATH, image)
     # Normalize the image for the AI
     image = image / 255
     # Make a copy of the original image for the visualisation
@@ -109,8 +113,9 @@ while True:
     # Predict the contrast of the image
     contrast_value = model.predict(np.array([average_brightness]))[0]
     # Write contrast value to file for Server visualization
-    with open(CONTRAST_FILE_PATH, 'w') as file:
-        file.write(str(contrast_value[0]))
+    if send_image > TRESHOLD_IMAGE_SEND:
+        with open(CONTRAST_FILE_PATH, 'w') as file:
+            file.write(str(contrast_value[0]))
     # Enhance the contrast of the image corresponding to the predicted value
     image_contrast = m.enhance_contrast(original_image, contrast_value[0], 0)
     # Generate a mask making the white parts white and the rest black to get a heatmap of the street
@@ -123,6 +128,10 @@ while True:
         image_contrast[:] = 0
         image_contrast[white_mask] = 1
 
+    # Save image_contrast to folder for Server visualization
+    if send_image > TRESHOLD_IMAGE_SEND:
+        cv2.imwrite(AI_SECOND_IMAGE_PATH, image_contrast*255)
+    
     # Extract all white componets of the image
     labels = measure.label(image_contrast, connectivity=2)
     properties = measure.regionprops(labels)
@@ -134,6 +143,9 @@ while True:
         largest_mask = labels == largest_label
         image_contrast = np.zeros_like(image_contrast)
         image_contrast[largest_mask] = 1
+        # Save image_contrast to folder for Server visualization
+        if send_image > TRESHOLD_IMAGE_SEND:
+            cv2.imwrite(AI_THIRD_IMAGE_PATH, image_contrast*255)
         # Find the centroid of the largest component
         centroid = largest_component.centroid
         print("Schwerpunkt der größten Komponente:", centroid)
@@ -168,3 +180,7 @@ while True:
         print("No white area found.")
         steering_direction = 0
         #ser.write(str(int(calculate_angle(0))).encode())
+    send_image +=1
+    if send_image==TRESHOLD_IMAGE_SEND+2:
+        print("RESET")
+        send_image = 0

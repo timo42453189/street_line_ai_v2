@@ -19,47 +19,69 @@
     </header>
     <main id="content">
     <h1>Get Image</h1>
-    <img id="ai-image" src="/static/images/ai_first_image.jpg" alt="AI Prediction">
+    <img id="ai-image" src="/static/images/ai_first_image.jpg" alt="Main Image">
     <h1>↓</h1>
     <h1>Predict contrast Value</h1>
     <p id="contrast-value"></p>
+    <h1>↓</h1>
+    <h1>Apply Contrast</h1>
+    <img id="contrast-image" src="/static/images/ai_second_image.jpg" alt="AI Prediction">
+    <h1>↓</h1>
+    <h1>Remove Noise</h1>
+    <img id="noise-image" src="/static/images/ai_third_image.jpg" alt="AI Prediction">
     </main>
 
-<script>
-    const imageElement = document.getElementById('ai-image');
-    let lastModified = null;
-    async function checkForImageUpdate() {
-        try {
-            const response = await fetch('/image/last_modified_first');
-            if (response.ok) {
-                const data = await response.json();
-                if (data.last_modified && data.last_modified !== lastModified) {
-                    lastModified = data.last_modified;
-                    imageElement.src = `/static/images/ai_first_image.jpg?timestamp=${new Date().getTime()}`;
+    <script>
+        let lastModifiedFirst = null;
+        let lastModifiedSecond = null;
+        let lastModifiedThird = null;
+
+        async function fetchLastModified(endpoint) {
+            try {
+                const response = await fetch(endpoint);
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.last_modified;
+                } else {
+                    console.error('Failed to fetch last modified timestamp');
                 }
-            } else {
-                console.error('Failed to fetch last modified timestamp');
+            } catch (error) {
+                console.error('Error fetching last modified:', error);
             }
-        } catch (error) {
-            console.error('Error checking for image update:', error);
         }
-    }
-    async function checkContrastValue() {
-        try {
-            const response = await fetch('/image/contrast_value');
-            if (response.ok) {
-                const data = await response.json();
-                document.getElementById('contrast-value').textContent = data.contrast_value;
-            } else {
-                console.error('Failed to fetch contrast value');
+
+        async function updateImageIfModified(imageId, imageSrc, lastModifiedKey, endpoint) {
+            try {
+                const currentLastModified = await fetchLastModified(endpoint);
+                if (currentLastModified && currentLastModified !== lastModifiedKey) {
+                    document.getElementById(imageId).src = `${imageSrc}?timestamp=${new Date().getTime()}`;
+                    window[lastModifiedKey] = currentLastModified;
+                }
+            } catch (error) {
+                console.error(`Error updating image ${imageId}:`, error);
             }
-        } catch (error) {
-            console.error('Error checking contrast value:', error);
         }
-    }
-    setInterval(checkContrastValue, 500);
-    setInterval(checkForImageUpdate, 500);
-</script>
+
+        async function updateContrastValue() {
+            try {
+                const response = await fetch('/values/contrast_value');
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('contrast-value').textContent = data.contrast_value;
+                } else {
+                    console.error('Failed to fetch contrast value');
+                }
+            } catch (error) {
+                console.error('Error fetching contrast value:', error);
+            }
+        }
+
+        // Häufigkeit der Überprüfung auf Bildaktualisierungen und Kontrastwert anpassen
+        setInterval(() => updateImageIfModified('ai-image', '/static/images/ai_first_image.jpg', 'lastModifiedFirst', '/image/last_modified_first'), 1000); // Alle 5 Sekunden
+        setInterval(() => updateImageIfModified('contrast-image', '/static/images/ai_second_image.jpg', 'lastModifiedSecond', '/image/last_modified_second'), 1000);
+        setInterval(() => updateImageIfModified('noise-image', '/static/images/ai_third_image.jpg', 'lastModifiedThird', '/image/last_modified_third'), 1000);
+        setInterval(updateContrastValue, 1000); // Alle 5 Sekunden
+    </script>
 
     <footer>
         <p>&copy; Jugend forscht 2024/2025</p>
