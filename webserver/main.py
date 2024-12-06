@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, render_template, send_file
+from flask import Flask, jsonify, render_template, send_file, request
 import os
 
 AI_FIRST_IMAGE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'images', 'ai_first_image.jpg')
@@ -9,6 +9,7 @@ VOLTAGE_FILE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'files', 'v
 AI_SECOND_IMAGE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'images', 'ai_second_image.jpg')
 AI_THIRD_IMAGE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'images', 'ai_third_image.jpg')
 AI_FOURTH_IMAGE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'images', 'ai_fourth_image.jpg')
+KP_FILE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'files', 'KP.txt')
 
 app = Flask(__name__)
 
@@ -131,6 +132,17 @@ def get_steering_angle():
     except ValueError:
         return jsonify({"error": "Invalid contrast value"}), 400
 
+@app.route('/control_car')
+def control_car():
+    return render_template('control_car.html', KP_value = read_file(KP_FILE_PATH))
+
+@app.route('/save_KP_value', methods=['POST'])
+def save_contrast_value():
+    if request.method == 'POST':
+        KP = request.get_json()["KP"]
+        write_file(KP_FILE_PATH, KP)
+        return "OK", 200
+    return "Method not allowed", 405
 
 if __name__ == '__main__':
     app.run(debug=True)

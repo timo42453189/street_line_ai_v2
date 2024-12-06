@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/css/styles.css">
+
+    <title>AI Prediction</title>
+</head>
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="/">Home</a></li>
+                <li><a href="/battery">Batterie</a></li>
+                <li><a href="/ai_prediction">AI Prediction</a></li>
+                <li><a href="/control_car">Control Car</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main id="content">
+    <h1>Adjust Values</h1>
+
+ <!-- Slider -->
+ <h2>Steering Angle Calculation Value:</h2>
+ <p>Description: When calculating the steering angle, the program uses a value (default 0.03) 
+    to determine how hard you want to steer. With this slider you can adjust this value and see how the car reacts.</p>
+ <input type="range" id="slider" name="slider" min="0.01" max="0.1" step="0.01" value="0.03">
+ <span id="sliderValue">0.03</span>
+ <p id="currentValue">Current Value saved: {{ KP_value }}</p>
+
+ <br>
+
+ <!-- Save Button -->
+ <button id="saveButton">Save Value</button>
+    </main>
+    <footer>
+        <p>&copy; Jugend forscht 2024/2025</p>
+    </footer>
+
+    <script>
+        // Funktion zum Aktualisieren der angezeigten Slider-Werte
+        document.getElementById('slider').addEventListener('input', function() {
+            document.getElementById('sliderValue').textContent = this.value;
+        });
+
+        document.getElementById('saveButton').addEventListener('click', async function() {
+            const sliderValue = document.getElementById('slider').value;
+
+            const response = await fetch('/save_KP_value', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    KP: sliderValue,
+                }),
+            });
+
+            if (response.ok) {
+                alert('Value saved successfully');
+                document.getElementById('currentValue').textContent = `Current Value saved: ${sliderValue}`;
+            } else {
+                alert('Failed to save value');
+            }
+        });
+    </script>
+
+</body>
+</html>

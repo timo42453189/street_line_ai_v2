@@ -13,22 +13,32 @@ import os
 #ser = serial.Serial("COM9", 115200)
 time.sleep(3)
 
+# Constants for file paths --> Pipe for Server file communication
 CONTRAST_FILE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'files', 'contrast_value.txt')
 STEERING_ANGLE_FILE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'files', 'steering_angle.txt')
 AI_FIRST_IMAGE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'images', 'ai_first_image.jpg')
 AI_SECOND_IMAGE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'images', 'ai_second_image.jpg')
 AI_THIRD_IMAGE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'images', 'ai_third_image.jpg')
 AI_FOURTH_IMAGE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'images', 'ai_fourth_image.jpg')
+KP_FILE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'files', 'KP.txt')
 
 # Load the Camera, Image Manipulator and Model
 c = Cam(index=[0])
 m = ImageManipulator()
 model = TensorflowModelTest('contrast_model/v0_contrast.h5')
 
+def read_file(file_path):
+    with open(file_path, 'r') as file:
+        return float(file.read().strip())
+
+def write_file(file_path, value):
+    with open(file_path, 'w') as file:
+        file.write(str(value))
+        
 # Constants
 THRESHOLD = 0.9
-KP = 0.03
-
+KP = read_file(KP_FILE_PATH)
+last_modified = os.path.getmtime(KP_FILE_PATH)
 
 def calculate_angle(x):
     """
@@ -46,13 +56,6 @@ def calculate_angle(x):
     """
     return 495*x+510
 
-def read_file(file_path):
-    with open(file_path, 'r') as file:
-        return float(file.read().strip())
-
-def write_file(file_path, value):
-    with open(file_path, 'w') as file:
-        file.write(str(value))
 
 def draw_bezier_curve(image ,p0 ,p1 ,p2 ,curvature_factor=1.0 ,color=(0, 255, 0) , thickness=2):
     """
@@ -156,9 +159,14 @@ while True:
         # Save image_contrast to folder for Server visualization
         if send_image > TRESHOLD_IMAGE_SEND:
             cv2.imwrite(AI_THIRD_IMAGE_PATH, image_contrast*255)
+            currentLastModified = os.path.getmtime(KP_FILE_PATH)
+            if last_modified != currentLastModified:
+                last_modified = currentLastModified
+                KP = read_file(KP_FILE_PATH)
+                print("KP changed to:", KP)
         # Find the centroid of the largest component
         centroid = largest_component.centroid
-        print("Schwerpunkt der größten Komponente:", centroid)
+        #print("Schwerpunkt der größten Komponente:", centroid)
         # Calculate the delta_x between the centroid and the image center
         image_center_x = width / 2
         centroid_x = centroid[1]
@@ -167,7 +175,7 @@ while True:
         steering_direction = KP * delta_x
 
         print(f"(Steering angle: {steering_direction:.2f})")
-        print(f"Steering angle for Arduino: {calculate_angle(steering_direction)}")
+        #print(f"Steering angle for Arduino: {calculate_angle(steering_direction)}")
         # Send the calculated steering angle to the Arduino
         #ser.write(str(int(calculate_angle(steering_direction))).encode())
         # Calculate the parameters for visualization and draw the bezier curve
