@@ -1,8 +1,8 @@
 #include <Stepper.h>
 
-int L1 = 2;
-int L2 = 0;
-int L3 = 1;
+const int L1 = 2;
+const int L2 = 0;
+const int L3 = 1;
 boolean L1Val = 0;
 int mode = -1;
 int motor = 0;

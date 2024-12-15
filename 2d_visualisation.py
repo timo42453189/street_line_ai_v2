@@ -192,10 +192,10 @@ while True:
             cv2.imwrite(AI_FOURTH_IMAGE_PATH, image_contrast*255)
             write_file(STEERING_ANGLE_FILE_PATH, steering_direction)
         # Display the image for visualisation
-        cv2.imshow('road', image_contrast)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            cv2.destroyAllWindows()
-            break
+        # cv2.imshow('road', image_contrast)
+        # if cv2.waitKey(1) & 0xFF == ord('q'):
+        #     cv2.destroyAllWindows()
+        #     break
         #time.sleep(1)
         
     else:
