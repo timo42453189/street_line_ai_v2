@@ -1,16 +1,18 @@
 from TensorflowModelTest import TensorflowModelTest
 from ImageDisplayer import ImageDisplayer
 from ImageManipulator import ImageManipulator
+from data_storing.DataReader import DataReader
 import numpy as np
 from skimage import measure
 from camera.camera import Cam
-#import serial
+import serial
 import time
 import cv2
 import os
+import sys
 
 # Initialize the serial port
-#ser = serial.Serial("COM9", 115200)
+ser = serial.Serial("COM10", 115200)
 time.sleep(3)
 
 # Constants for file paths --> Pipe for Server file communication
@@ -23,9 +25,11 @@ AI_FOURTH_IMAGE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'images'
 KP_FILE_PATH = os.path.join(os.getcwd(), 'webserver', 'static', 'files', 'KP.txt')
 
 # Load the Camera, Image Manipulator and Model
-c = Cam(index=[0])
+c = Cam(index=[1])
 m = ImageManipulator()
+d = DataReader()
 model = TensorflowModelTest('contrast_model/v0_contrast.h5')
+
 
 def read_file(file_path):
     with open(file_path, 'r') as file:
@@ -99,110 +103,150 @@ def draw_bezier_curve(image ,p0 ,p1 ,p2 ,curvature_factor=1.0 ,color=(0, 255, 0)
 
 send_image = 0
 TRESHOLD_IMAGE_SEND = 20
+camera = False
 while True:
-    # Takes an image from the webcam and resize it
-    image = c.resize_image(c.get_frame())
-    # Save image to folder for Server visualization
-    if send_image > TRESHOLD_IMAGE_SEND:
-        cv2.imwrite(AI_FIRST_IMAGE_PATH, image)
-    # Normalize the image for the AI
-    image = image / 255
-    # Make a copy of the original image for the visualisation
-    original_image = image.copy()
+    user_request = input("> ")
+    if "ai" in user_request.lower():
+        if "false" in user_request.lower():
+            camera = False
+        else:
+            camera = True
+        while True:
+            try:
+                # Takes an image from the webcam and resize it
+                if camera == True:
+                    image = c.resize_image(c.get_frame())
+                else:
+                    image_name = input("Image Name> ")
+                    image, _ = d.read(image_name, "train_images")
+                # Save image to folder for Server visualization
+                if send_image > TRESHOLD_IMAGE_SEND and camera == True:
+                    cv2.imwrite(AI_FIRST_IMAGE_PATH, image)
+                elif camera == False:
+                    cv2.imwrite(AI_FIRST_IMAGE_PATH, image)
+                # Normalize the image for the AI
+                image = image / 255
+                # Make a copy of the original image for the visualisation
+                original_image = image.copy()
 
-    # Divide the image in 3 parts
-    height, width = original_image.shape[:2]
-    part_width = width // 3
+                currentLastModified = os.path.getmtime(KP_FILE_PATH)
+                if last_modified != currentLastModified:
+                    last_modified = currentLastModified
+                    KP = read_file(KP_FILE_PATH)
+                    print("KP changed to:", KP)
 
-    # Calculate the average brightness of every part
-    # average_brightness: List[float] --> Input for the AI model
-    average_brightness = []
-    for i in range(3):
-        x_start = i * part_width
-        x_end = (i + 1) * part_width if i < 2 else width
-        part = original_image[:, x_start:x_end]
-        brightness = np.mean(part)
-        average_brightness.append(brightness)
+                # Divide the image in 3 parts
+                height, width = original_image.shape[:2]
+                part_width = width // 3
 
-    # Predict the contrast of the image
-    contrast_value = model.predict(np.array([average_brightness]))[0]
-    # Write contrast value to file for Server visualization
-    if send_image > TRESHOLD_IMAGE_SEND:
-        write_file(CONTRAST_FILE_PATH, contrast_value[0])
-    # Enhance the contrast of the image corresponding to the predicted value
-    image_contrast = m.enhance_contrast(original_image, contrast_value[0], 0)
-    # Generate a mask making the white parts white and the rest black to get a heatmap of the street
-    if len(image_contrast.shape) == 3 and image_contrast.shape[2] == 3:
-        white_mask = np.all(image_contrast >= THRESHOLD, axis=-1)
-        image_contrast[:] = [0, 0, 0]
-        image_contrast[white_mask] = [1, 1, 1]
-    else:
-        white_mask = image_contrast >= THRESHOLD
-        image_contrast[:] = 0
-        image_contrast[white_mask] = 1
+                # Calculate the average brightness of every part
+                # average_brightness: List[float] --> Input for the AI model
+                average_brightness = []
+                for i in range(3):
+                    x_start = i * part_width
+                    x_end = (i + 1) * part_width if i < 2 else width
+                    part = original_image[:, x_start:x_end]
+                    brightness = np.mean(part)
+                    average_brightness.append(brightness)
 
-    # Save image_contrast to folder for Server visualization
-    if send_image > TRESHOLD_IMAGE_SEND:
-        cv2.imwrite(AI_SECOND_IMAGE_PATH, image_contrast*255)
-    
-    # Extract all white componets of the image
-    labels = measure.label(image_contrast, connectivity=2)
-    properties = measure.regionprops(labels)
+                # Predict the contrast of the image
+                contrast_value = model.predict(np.array([average_brightness]))[0]
+                # Write contrast value to file for Server visualization
+                if send_image > TRESHOLD_IMAGE_SEND and camera == True:
+                    write_file(CONTRAST_FILE_PATH, contrast_value[0])
+                elif camera == False:
+                    write_file(CONTRAST_FILE_PATH, contrast_value[0])
+                # Enhance the contrast of the image corresponding to the predicted value
+                image_contrast = m.enhance_contrast(original_image, contrast_value[0], 0)
+                # Generate a mask making the white parts white and the rest black to get a heatmap of the street
+                if len(image_contrast.shape) == 3 and image_contrast.shape[2] == 3:
+                    white_mask = np.all(image_contrast >= THRESHOLD, axis=-1)
+                    image_contrast[:] = [0, 0, 0]
+                    image_contrast[white_mask] = [1, 1, 1]
+                else:
+                    white_mask = image_contrast >= THRESHOLD
+                    image_contrast[:] = 0
+                    image_contrast[white_mask] = 1
 
-    if properties:
-        # Find the component with the largest area and extract it
-        largest_component = max(properties, key=lambda x: x.area)
-        largest_label = largest_component.label
-        largest_mask = labels == largest_label
-        image_contrast = np.zeros_like(image_contrast)
-        image_contrast[largest_mask] = 1
-        # Save image_contrast to folder for Server visualization
-        if send_image > TRESHOLD_IMAGE_SEND:
-            cv2.imwrite(AI_THIRD_IMAGE_PATH, image_contrast*255)
-            currentLastModified = os.path.getmtime(KP_FILE_PATH)
-            if last_modified != currentLastModified:
-                last_modified = currentLastModified
-                KP = read_file(KP_FILE_PATH)
-                print("KP changed to:", KP)
-        # Find the centroid of the largest component
-        centroid = largest_component.centroid
-        #print("Schwerpunkt der größten Komponente:", centroid)
-        # Calculate the delta_x between the centroid and the image center
-        image_center_x = width / 2
-        centroid_x = centroid[1]
-        delta_x = centroid_x - image_center_x
-        # Multiply the delta_x with the KP constant to get correspoinding steering angle
-        steering_direction = KP * delta_x
+                # Save image_contrast to folder for Server visualization
+                if send_image > TRESHOLD_IMAGE_SEND and camera == True:
+                    cv2.imwrite(AI_SECOND_IMAGE_PATH, image_contrast*255)
+                elif camera == False:
+                    cv2.imwrite(AI_SECOND_IMAGE_PATH, image_contrast*255)
 
-        print(f"(Steering angle: {steering_direction:.2f})")
-        #print(f"Steering angle for Arduino: {calculate_angle(steering_direction)}")
-        # Send the calculated steering angle to the Arduino
-        #ser.write(str(int(calculate_angle(steering_direction))).encode())
-        # Calculate the parameters for visualization and draw the bezier curve
-        p0 = (140, 70)
-        p1 = (140, 50)
-        p2 = (140*(steering_direction+1), 20)
-        image_contrast = draw_bezier_curve(image_contrast, p0, p1, p2)
-        p0 = (190, 70)
-        p1 = (190, 50)
-        p2 = (190*(steering_direction+1), 20)
-        image_contrast = draw_bezier_curve(image_contrast, p0, p1, p2)
-        # Save image_contrast to folder for Server visualization
-        if send_image > TRESHOLD_IMAGE_SEND:
-            cv2.imwrite(AI_FOURTH_IMAGE_PATH, image_contrast*255)
-            write_file(STEERING_ANGLE_FILE_PATH, steering_direction)
-        # Display the image for visualisation
-        # cv2.imshow('road', image_contrast)
-        # if cv2.waitKey(1) & 0xFF == ord('q'):
-        #     cv2.destroyAllWindows()
-        #     break
-        #time.sleep(1)
-        
-    else:
-        print("No white area found.")
-        steering_direction = 0
-        #ser.write(str(int(calculate_angle(0))).encode())
-    send_image +=1
-    if send_image==TRESHOLD_IMAGE_SEND+2:
-        print("RESET")
-        send_image = 0
+                # Extract all white componets of the image
+                labels = measure.label(image_contrast, connectivity=2)
+                properties = measure.regionprops(labels)
+
+                if properties:
+                    # Find the component with the largest area and extract it
+                    largest_component = max(properties, key=lambda x: x.area)
+                    largest_label = largest_component.label
+                    largest_mask = labels == largest_label
+                    image_contrast = np.zeros_like(image_contrast)
+                    image_contrast[largest_mask] = 1
+                    # Save image_contrast to folder for Server visualization
+                    if send_image > TRESHOLD_IMAGE_SEND and camera == True:
+                        cv2.imwrite(AI_THIRD_IMAGE_PATH, image_contrast*255)
+                    elif camera == False:
+                        cv2.imwrite(AI_THIRD_IMAGE_PATH, image_contrast*255)
+                    # Find the centroid of the largest component
+                    centroid = largest_component.centroid
+                    #print("Schwerpunkt der größten Komponente:", centroid)
+                    # Calculate the delta_x between the centroid and the image center
+                    image_center_x = width / 2
+                    centroid_x = centroid[1]
+                    delta_x = centroid_x - image_center_x
+                    # Multiply the delta_x with the KP constant to get correspoinding steering angle
+                    steering_direction = KP * delta_x
+
+                    print(f"(Steering angle: {steering_direction:.2f})")
+                    #print(f"Steering angle for Arduino: {calculate_angle(steering_direction)}")
+                    # Send the calculated steering angle to the Arduino
+                    ser.write(str(int(calculate_angle(steering_direction))).encode())
+                    # Calculate the parameters for visualization and draw the bezier curve
+                    p0 = (140, 70)
+                    p1 = (140, 50)
+                    p2 = (140*(steering_direction+1), 20)
+                    image_contrast = draw_bezier_curve(image_contrast, p0, p1, p2)
+                    p0 = (190, 70)
+                    p1 = (190, 50)
+                    p2 = (190*(steering_direction+1), 20)
+                    image_contrast = draw_bezier_curve(image_contrast, p0, p1, p2)
+                    # Save image_contrast to folder for Server visualization
+                    if send_image > TRESHOLD_IMAGE_SEND and camera == True:
+                        cv2.imwrite(AI_FOURTH_IMAGE_PATH, image_contrast*255)
+                        write_file(STEERING_ANGLE_FILE_PATH, steering_direction)
+                    elif camera == False:
+                        cv2.imwrite(AI_FOURTH_IMAGE_PATH, image_contrast*255)
+                        write_file(STEERING_ANGLE_FILE_PATH, steering_direction)   
+                    # Display the image for visualisation
+                    # cv2.imshow('road', image_contrast)
+                    # if cv2.waitKey(1) & 0xFF == ord('q'):
+                    #     cv2.destroyAllWindows()
+                    #     break
+                    #time.sleep(1)
+                    
+                else:
+                    print("No white area found.")
+                    steering_direction = 0
+                    ser.write(str(int(calculate_angle(0))).encode())
+                send_image +=1
+                if send_image==TRESHOLD_IMAGE_SEND+2:
+                    print("RESET")
+                    send_image = 0
+            except KeyboardInterrupt:
+                break
+    if "manuell" in user_request.lower():
+        while True:
+            try:
+                angle = int(input("Steering Angle> "))
+                if 0 <= angle <= 1000:
+                    ser.write(str(int(angle)).encode())
+                else:
+                    print("Invalid Angle")
+            except KeyboardInterrupt:
+                print("")
+                break
+    if user_request == "exit":
+        sys.exit()
